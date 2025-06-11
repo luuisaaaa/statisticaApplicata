@@ -1,45 +1,114 @@
-# Analisi descrittiva
+# Calcolo frequenze per classi
+frequenze_classi <- function(x, k) {
+  breaks <- seq(min(x), max(x), length.out = k + 1)
+  classi <- cut(x, breaks = breaks, include.lowest = TRUE, right = FALSE)
+  frequenze <- table(classi)
+  return(list(frequenze = frequenze, breaks = breaks, classi = classi))
+}
 
-# Caricamento del dataset
-dati=read.csv("DataSet_gruppo8.csv", header=TRUE)
-View(dati)
+# Centri delle classi
+centri_classi <- function(breaks) {
+  return((head(breaks, -1) + tail(breaks, -1)) / 2)
+}
 
-# STATISTICHE DESCRITTIVE 
-# Variabile target
-y <- dati$y_VideoQuality
-x1_ISO <- dati$x1_ISO
-x2_FRatio <- dati$x2_FRatio
-x3_TIME <- dati$x3_TIME
-x4_MP <- dati$x4_MP
-x5_CROP <- dati$x5_CROP
-x6_FOCAL <- dati$x6_FOCAL
-x7_PixDensity <- dati$x7_PixDensity
+frequenzaRelativa <- function(frequenze, n) {
+  return(frequenze / n)
+}
 
-# Moda 
-tabulate(round(y))  # si approssima la moda con valori interi
-moda <- which.max(tabulate(round(y))); moda
+frequenzaCumulativa <- function(frequenze) {
+  return(cumsum(frequenze))
+}
 
-# Mediana e media
-mediana <- median(y); mediana
-media <- mean(y); media
+frequenzaRelativaCumulativa <- function(freq_cum, n) {
+  return(freq_cum / n)
+}
 
-# Robustezza agli outlier
-media_con_outlier <- mean(c(1,2,3,10,13000)); media_con_outlier
-mediana_con_outlier <- median(c(1,2,3,10,13000)); mediana_con_outlier
+intervalloInterquartile <- function(x) {
+  q1 <- quantile(x, 0.25)
+  q3 <- quantile(x, 0.75)
+  iqr <- q3 - q1
+  return(c(inf = q1 - 1.5 * iqr, sup = q3 + 1.5 * iqr))
+}
 
-# Quartili e decili
-quartili <- quantile(y, probs=c(0.25, 0.5, 0.75)); quartili
-decili <- quantile(y, probs=(1:9)/10); decili
 
-# Range e escursione campionaria
-range_y <- range(y); range_y
-escursione <- diff(range(y)); escursione
 
-# Summary completo 
-summary(y)
+#Caricamento e setup iniziale
+data <- read.csv("DataSet_gruppo8.csv", header=TRUE)
+View(data)
 
-# Boxplot della variabile target
-boxplot(y, main="Boxplot di y_VideoQuality", col="orange")
+n <- nrow(data)
+variabili <- data[, 1:7]  # tutte le x numeriche
 
-# Istogramma
-hist(y, breaks=15, col="lightblue", main="Istogramma di y_VideoQuality", xlab="y")
+# Numero classi con regola di Sturges
+k <- round(1 + 3.3 * log10(n))
+
+
+#hsh
+summary(data)
+
+#
+for (nome in names(variabili)) {
+  cat("\nAnalisi descrittiva per", nome, "\n")
+  
+  x <- variabili[[nome]]
+  risultati <- frequenze_classi(x, k)
+  frequenze <- risultati$frequenze
+  breaks <- risultati$breaks
+  centri <- centri_classi(breaks)
+  fr <- frequenzaRelativa(frequenze, length(x))
+  fc <- frequenzaCumulativa(frequenze)
+  frc <- frequenzaRelativaCumulativa(fc, length(x))
+  outliers <- intervalloInterquartile(x)
+  
+  print(frequenze)
+  print(centri)
+  print(fr)
+  print(fc)
+  print(frc)
+  cat("Intervallo interquartile (limiti outlier):\n"); print(outliers)
+}
+
+#Boxplot e istogrammi
+# Boxplot unico
+dev.new()
+boxplot(data[,1],
+        main = "Boxplot della variabile Y ",
+        las = 2,
+        cex.axis = 0.8) #y
+
+
+boxplot(data[, 2:8],
+        main = "Boxplot delle variabili X",
+        las = 2,
+        cex.axis = 0.8)
+
+# Istogrammi per ciascuna variabile
+par(mfrow = c(3, 3))
+for (nome in names(variabili)) {
+  hist(variabili[[nome]], 
+       main = paste("Istogramma di", nome), 
+       xlab = nome, 
+       col = "skyblue", 
+       breaks = k)
+}
+par(mfrow = c(1, 1))
+
+# 6. Correlazioni e visualizzazioni
+library(GGally)
+ggpairs(data, upper = NULL)
+
+corr_matrix <- cor(data)
+library(corrplot)
+corrplot.mixed(corr_matrix, order = "original", number.cex = 1, upper = "ellipse")
+
+library(psych)
+corPlot(corr_matrix, cex = 1.1, show.legend = TRUE, main = "Correlazione variabili")
+
+#7. Analisi individuale tra x e y (scatterplot)
+par(mfrow = c(2, 2), oma = c(0, 0, 4, 0))
+plot(data$x1_ISO, data$y_VideoQuality, xlab = "ISO", ylab = "Video Quality")
+plot(data$x2_FRatio, data$y_VideoQuality, xlab = "FRatio", ylab = "Video Quality")
+plot(data$x3_TIME, data$y_VideoQuality, xlab = "TIME", ylab = "Video Quality")
+plot(data$x5_CROP, data$y_VideoQuality, xlab = "CROP", ylab = "Video Quality")
+mtext("Relazione tra variabili indipendenti e y", outer = TRUE, cex = 1.5, line = 0.5)
+par(mfrow = c(1, 1))
