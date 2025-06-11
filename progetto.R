@@ -70,11 +70,11 @@ for (nome in names(variabili)) {
 
 #Boxplot e istogrammi
 # Boxplot unico
-dev.new()
-boxplot(data[,1],
-        main = "Boxplot della variabile Y ",
+
+boxplot(data$y_VideoQuality,
+        main = "Boxplot della variabile Y",
         las = 2,
-        cex.axis = 0.8) #y
+        cex.axis = 0.9) #y
 
 
 boxplot(data[, 2:8],
@@ -91,7 +91,21 @@ for (nome in names(variabili)) {
        col = "skyblue", 
        breaks = k)
 }
-par(mfrow = c(1, 1))
+par(mfrow = c(3, 3))
+
+# Verifica normalità variabili (Q-Q plot + Shapiro)
+qqnorm(data$y_VideoQuality); qqline(data$y_VideoQuality, col = "red")
+shapiro.test(data$y_VideoQuality)
+# Il p-value > 0.05, quindi non si rifiuta l’ipotesi di normalità.
+#  Y è sufficientemente normale, compatibile con l’uso della regressione lineare.
+
+# Ciclo opzionale sulle X
+for (var in names(data)[1:7]) {
+  cat("\n", var, "\n")
+  qqnorm(data[[var]]); qqline(data[[var]], col = "green")
+  print(shapiro.test(data[[var]]))
+}
+#Tutti i p-value < 0.05 → normalità rifiutata per tutte le X (con Shapiro–Wilk).
 
 # 6. Correlazioni e visualizzazioni
 library(GGally)
