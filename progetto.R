@@ -144,3 +144,21 @@ for (nome in nomi_variabili) {
     theme_minimal(base_size = 14)
   print(p)
 }
+
+#modello completo, che include tutte le variabili indipendenti
+model_full <- lm(y_VideoQuality ~ ., data = data)
+
+#modello ridotto, costruito includendo solo le variabili
+#risultano piu significativamente associate a y VideoQuality.
+model_reduced <- lm(y_VideoQuality ~ x1_ISO + x2_FRatio + x5_CROP + x3_TIME, data = data)
+
+
+#Stima e intervalli di confidenza dei parametri
+# Modello completo
+summary(model_full)
+confint(model full, level = 0.95)
+
+# Modello ridotto
+summary(model_reduced)
+confint(model reduced, level = 0.95)
+
