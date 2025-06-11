@@ -30,6 +30,11 @@ intervalloInterquartile <- function(x) {
   return(c(inf = q1 - 1.5 * iqr, sup = q3 + 1.5 * iqr))
 }
 
+# Librerie necessarie
+library(ggplot2)
+library(GGally)
+library(corrplot)
+library(psych)
 
 
 #Caricamento e setup iniziale
@@ -107,22 +112,35 @@ for (var in names(data)[1:7]) {
 }
 #Tutti i p-value < 0.05 → normalità rifiutata per tutte le X (con Shapiro–Wilk).
 
-# 6. Correlazioni e visualizzazioni
-library(GGally)
+# Correlazione e scatter matrix
+corr_matrix <- cor(data[sapply(data, is.numeric)])
+corrplot.mixed(corr_matrix, order = "original", number.cex = 1, upper = "ellipse")
+corPlot(corr_matrix, cex = 1.1, show.legend = TRUE, main = "Correlazione variabili")
 ggpairs(data, upper = NULL)
 
-corr_matrix <- cor(data)
-library(corrplot)
-corrplot.mixed(corr_matrix, order = "original", number.cex = 1, upper = "ellipse")
-
-library(psych)
-corPlot(corr_matrix, cex = 1.1, show.legend = TRUE, main = "Correlazione variabili")
-
-#7. Analisi individuale tra x e y (scatterplot)
-par(mfrow = c(2, 2), oma = c(0, 0, 4, 0))
+# Scatter plot individuali (base R)
+par(mfrow = c(2, 4), oma = c(0, 0, 4, 0))
 plot(data$x1_ISO, data$y_VideoQuality, xlab = "ISO", ylab = "Video Quality")
 plot(data$x2_FRatio, data$y_VideoQuality, xlab = "FRatio", ylab = "Video Quality")
 plot(data$x3_TIME, data$y_VideoQuality, xlab = "TIME", ylab = "Video Quality")
+plot(data$x4_MP, data$y_VideoQuality, xlab = "MP", ylab = "Video Quality")
 plot(data$x5_CROP, data$y_VideoQuality, xlab = "CROP", ylab = "Video Quality")
+plot(data$x6_FOCAL, data$y_VideoQuality, xlab = "FOCAL", ylab = "Video Quality")
+plot(data$x7_PixDensity, data$y_VideoQuality, xlab = "PixDensity", ylab = "Video Quality")
 mtext("Relazione tra variabili indipendenti e y", outer = TRUE, cex = 1.5, line = 0.5)
 par(mfrow = c(1, 1))
+
+# Scatter ggplot2 con regressione
+nomi_variabili <- names(data)[names(data) != "y_VideoQuality"]
+for (nome in nomi_variabili) {
+  p <- ggplot(data, aes_string(x = nome, y = "y_VideoQuality")) +
+    geom_point(color = "steelblue", size = 2) +
+    geom_smooth(method = "lm", se = TRUE, color = "red", linetype = "dashed") +
+    labs(
+      title = paste("Scatter plot tra", nome, "e y_VideoQuality"),
+      x = nome,
+      y = "y_VideoQuality"
+    ) +
+    theme_minimal(base_size = 14)
+  print(p)
+}
