@@ -162,3 +162,157 @@ confint(model full, level = 0.95)
 summary(model_reduced)
 confint(model reduced, level = 0.95)
 
+
+
+# PUNTO 4 - Stima dei coefficienti e intervalli di confidenza al 95%
+# l'ho fatto sia per il completo che per il ridotto (non so se andava fatto su entrambi)
+# Per tutti i parametri calcolo l'intervallo di confidenza al 95% sulla base
+# della t di Student. Ci stanno grafici a barre orizzontali per visualizzare
+# l'intervallo di confidenza dei coefficienti e, per il modello ridotto anche
+# grafici delle regressioni con intervalli di confidenza per ciascuna variabile indipendent, sul modello completo
+#i grafici delle singole variabili non li ho messi perchè quelli delle variabili significative stanno già nel ridotto
+
+
+# MODELLO COMPLETO
+
+# Estrazione dei coefficienti stimati e degli errori standard
+parametri_full <- summary(model_full)$coefficients
+
+# Parametri globali per il calcolo degli IC
+n_sample_full <- nrow(data)  # numero di osservazioni
+k_param_full <- length(coef(model_full))  # numero di parametri stimati (inclusa l'intercetta)
+alpha <- 0.05  # livello di significatività
+t_score_full <- qt(1 - alpha/2, df = n_sample_full - k_param_full)  # quantile t-student
+
+cat("Intervalli di Confidenza al 95% (Modello Completo):\n\n")
+
+# Calcolo manuale degli intervalli di confidenza per ogni parametro
+for (param in rownames(parametri_full)) {
+  beta <- parametri_full[param, "Estimate"]
+  errore_std <- parametri_full[param, "Std. Error"]
+  IC_basso <- beta - t_score_full * errore_std
+  IC_alto <- beta + t_score_full * errore_std
+  cat(sprintf("%-15s: [%.4f , %.4f]\n", param, IC_basso, IC_alto))
+}
+
+# Costruzione del data frame per il grafico
+nomi_parametri_full <- rownames(parametri_full)
+stima_full <- parametri_full[, "Estimate"]
+errore_std_full <- parametri_full[, "Std. Error"]
+IC_min_full <- stima_full - t_score_full * errore_std_full
+IC_max_full <- stima_full + t_score_full * errore_std_full
+
+df_ic_full <- data.frame(
+  parametro = nomi_parametri_full,
+  stima = stima_full,
+  IC_basso = IC_min_full,
+  IC_alto = IC_max_full
+)
+
+# Grafico ggplot: Intervalli di confidenza 95% (Modello Completo)
+ggplot(df_ic_full, aes(x = stima, y = reorder(parametro, stima))) +
+  geom_point(color = "darkgreen", size = 3) +
+  geom_errorbarh(aes(xmin = IC_basso, xmax = IC_alto), height = 0.2, color = "gray40") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Intervalli di Confidenza al 95% (Modello Completo)",
+    x = "Valore stimato ± IC",
+    y = "Parametro"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+# MODELLO RIDOTTO
+
+# Estrazione dei coefficienti stimati e degli errori standard
+parametri_stimati <- summary(model_reduced)$coefficients
+
+# Parametri globali per il calcolo degli IC
+n_sample <- nrow(data)
+k_param <- length(coef(model_reduced))
+alpha <- 0.05
+t_score <- qt(1 - alpha/2, df = n_sample - k_param)
+
+cat("Intervalli di Confidenza al 95% (Modello Ridotto):\n\n")
+
+# Calcolo manuale degli intervalli di confidenza per ogni parametro
+for (param in rownames(parametri_stimati)) {
+  beta <- parametri_stimati[param, "Estimate"]
+  errore_std <- parametri_stimati[param, "Std. Error"]
+  IC_basso <- beta - t_score * errore_std
+  IC_alto <- beta + t_score * errore_std
+  cat(sprintf("%-12s: [%.4f , %.4f]\n", param, IC_basso, IC_alto))
+}
+
+# Costruzione del data frame per il grafico
+nomi_parametri <- rownames(parametri_stimati)
+stima <- parametri_stimati[, "Estimate"]
+errore_std <- parametri_stimati[, "Std. Error"]
+IC_min <- stima - t_score * errore_std
+IC_max <- stima + t_score * errore_std
+
+df_ic <- data.frame(
+  parametro = nomi_parametri,
+  stima = stima,
+  IC_basso = IC_min,
+  IC_alto = IC_max
+)
+
+# Grafico ggplot: Intervalli di confidenza 95% (Modello Ridotto)
+ggplot(df_ic, aes(x = stima, y = reorder(parametro, stima))) +
+  geom_point(color = "blue", size = 3) +
+  geom_errorbarh(aes(xmin = IC_basso, xmax = IC_alto), height = 0.2, color = "darkgray") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Intervalli di Confidenza al 95% (Modello Ridotto)",
+    x = "Valore stimato ± IC",
+    y = "Parametro"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+# GRAFICI VARIAZIONE SINGOLA VARIABILE 
+
+# Funzione per costruire il grafico di regressione e intervallo di confidenza per una singola variabile
+grafico_ic_singola_variabile <- function(var_nome, model, data) {
+  x_seq <- seq(min(data[[var_nome]]), max(data[[var_nome]]), length.out = 100)
+  
+  # Calcolo delle medie delle altre variabili nel modello ridotto
+  media_vars <- colMeans(data[c("x1_ISO", "x2_FRatio", "x3_TIME", "x5_CROP")])
+  
+  # Creo 100 righe identiche inizializzate con le medie
+  newdata <- as.data.frame(matrix(rep(media_vars, each = 100), nrow = 100))
+  colnames(newdata) <- names(media_vars)
+  
+  # Sovrascrivo la variabile che voglio far variare
+  newdata[[var_nome]] <- x_seq
+  
+  # Predizione dei valori attesi con intervallo di confidenza
+  pred <- predict(model, newdata = newdata, interval = "confidence", level = 0.95)
+  
+  # Costruzione del data frame da usare in ggplot
+  df_plot <- data.frame(
+    x = x_seq,
+    y_fit = pred[, "fit"],
+    y_min = pred[, "lwr"],
+    y_max = pred[, "upr"]
+  )
+  
+  # Grafico con linea di regressione e fascia di confidenza
+  ggplot(df_plot, aes(x = x, y = y_fit)) +
+    geom_line(color = "blue", linewidth = 1.2) +
+    geom_ribbon(aes(ymin = y_min, ymax = y_max), alpha = 0.2, fill = "blue") +
+    geom_point(data = data, aes_string(x = var_nome, y = "y_VideoQuality"), color = "black", size = 1.5) +
+    labs(
+      title = paste("Regressione + IC 95% per", var_nome),
+      x = var_nome,
+      y = "y_VideoQuality"
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Esecuzione della funzione per ciascuna variabile del modello ridotto
+grafico_ic_singola_variabile("x1_ISO", model_reduced, data)
+grafico_ic_singola_variabile("x2_FRatio", model_reduced, data)
+grafico_ic_singola_variabile("x3_TIME", model_reduced, data)
+grafico_ic_singola_variabile("x5_CROP", model_reduced, data)
