@@ -316,3 +316,72 @@ grafico_ic_singola_variabile("x1_ISO", model_reduced, data)
 grafico_ic_singola_variabile("x2_FRatio", model_reduced, data)
 grafico_ic_singola_variabile("x3_TIME", model_reduced, data)
 grafico_ic_singola_variabile("x5_CROP", model_reduced, data)
+
+
+#punto 5
+#Calcolo R², R² aggiustato e RMSE per i due modelli 
+
+# Per il modello completo
+summary_full <- summary(model_full)
+r2_full <- summary_full$r.squared                    # Coefficiente di determinazione
+adj_r2_full <- summary_full$adj.r.squared            # R² aggiustato
+rmse_full <- sqrt(mean(summary_full$residuals^2))    # Root Mean Squared Error (errore quadratico medio)
+
+# Per il modello ridotto
+summary_red <- summary(model_reduced)
+r2_red <- summary_red$r.squared
+adj_r2_red <- summary_red$adj.r.squared
+rmse_red <- sqrt(mean(summary_red$residuals^2))
+
+#Stampa dei risultati a confronto
+cat("Confronto tra modello completo e ridotto:\n\n")
+cat(sprintf("MODELLO COMPLETO:\nR² = %.4f | R² aggiustato = %.4f | RMSE = %.4f\n\n", 
+            r2_full, adj_r2_full, rmse_full))
+cat(sprintf("MODELLO RIDOTTO:\nR² = %.4f | R² aggiustato = %.4f | RMSE = %.4f\n\n", 
+            r2_red, adj_r2_red, rmse_red))
+
+
+# Grafico comparativo tra le metriche dei due modelli
+library(ggplot2)
+
+# Costruzione del data frame per il grafico
+df_confronto <- data.frame(
+  Modello = rep(c("Completo", "Ridotto"), each = 3),
+  Metrica = rep(c("R²", "R² aggiustato", "RMSE"), times = 2),
+  Valore = c(r2_full, adj_r2_full, rmse_full, r2_red, adj_r2_red, rmse_red)
+)
+
+# Grafico a barre affiancate
+ggplot(df_confronto, aes(x = Metrica, y = Valore, fill = Modello)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Valore, 3)), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.3, size = 4) +
+  labs(
+    title = "Confronto tra modello completo e ridotto",
+    x = "Metrica",
+    y = "Valore",
+    fill = "Modello"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+# Grafici diagnostici per i modelli lineari 
+
+# Visualizzazione dei 4 grafici diagnostici base di R:
+# 1. Residui vs Valori adattati
+# 2. QQ Plot dei residui
+# 3. Scale-Location
+# 4. Residui vs Leverage
+
+# Per il modello completo
+par(mfrow = c(2, 2))
+plot(model_full, main = "Diagnostica - Modello Completo")
+
+# Per il modello ridotto
+par(mfrow = c(2, 2))
+plot(model_reduced, main = "Diagnostica - Modello Ridotto")
+
+# Reset layout grafico
+par(mfrow = c(1, 1))
+
