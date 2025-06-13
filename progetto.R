@@ -41,6 +41,11 @@ library(psych)
 data <- read.csv("DataSet_gruppo8.csv", header=TRUE)
 View(data)
 
+# Eventuale pulizia
+data=na.omit(data) # remove rows with Not Available (NA) data
+str(data)
+summary(data)
+
 n <- nrow(data)
 variabili <- data[, 1:7]  # tutte le x numeriche
 
@@ -145,8 +150,10 @@ for (nome in nomi_variabili) {
   print(p)
 }
 
-#modello completo, che include tutte le variabili indipendenti
-model_full <- lm(y_VideoQuality ~ ., data = data)
+#modello completo, che include tutte le variabili indipendenti esclusa (x7_PixDensity, per evitare multicollinearità con x4_MP)
+
+model_full <- lm(y_VideoQuality ~ ., data = subset(data, select = -x7_PixDensity))
+
 
 #modello ridotto, costruito includendo solo le variabili
 #risultano piu significativamente associate a y VideoQuality.
@@ -210,6 +217,7 @@ df_ic_full <- data.frame(
 )
 
 # Grafico ggplot: Intervalli di confidenza 95% (Modello Completo)
+dev.new()
 ggplot(df_ic_full, aes(x = stima, y = reorder(parametro, stima))) +
   geom_point(color = "darkgreen", size = 3) +
   geom_errorbarh(aes(xmin = IC_basso, xmax = IC_alto), height = 0.2, color = "gray40") +
@@ -259,6 +267,7 @@ df_ic <- data.frame(
 )
 
 # Grafico ggplot: Intervalli di confidenza 95% (Modello Ridotto)
+dev.new()
 ggplot(df_ic, aes(x = stima, y = reorder(parametro, stima))) +
   geom_point(color = "blue", size = 3) +
   geom_errorbarh(aes(xmin = IC_basso, xmax = IC_alto), height = 0.2, color = "darkgray") +
@@ -384,4 +393,5 @@ plot(model_reduced, main = "Diagnostica - Modello Ridotto")
 
 # Reset layout grafico
 par(mfrow = c(1, 1))
+
 
