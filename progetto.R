@@ -455,7 +455,6 @@ plot(model_poly, main = "Diagnostica - Modello Polinomiale")
 par(mfrow = c(1, 1))
 shapiro.test(residuals(model_poly))
 
-
 # Confronto dei tre modelli
 df_confronto <- rbind(df_confronto, 
                       data.frame(
@@ -466,15 +465,32 @@ df_confronto <- rbind(df_confronto,
 )
 
 
-# Grafico 
-ggplot(df_confronto, aes(x = Metrica, y = Valore, fill = Modello)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  geom_text(aes(label = round(Valore, 3)), 
-            position = position_dodge(width = 0.9), 
-            vjust = -0.3, size = 4) +
-  labs(title = "Confronto tra modello completo, ridotto e polinomiale",
-       x = "Metrica", y = "Valore", fill = "Modello") +
-  theme_minimal(base_size = 14)
+
+#modello polinomiale 2
+
+model_poly_reduced<- lm(y_VideoQuality ~ 
+                   x1_ISO + 
+                   x2_FRatio + I(x2_FRatio^2) + 
+                   x3_TIME + 
+                   x5_CROP, 
+                 data = data)
+
+summary(model_poly_reduced)
+
+AIC(model_full, model_reduced, model_poly, model_poly_reduced )
+BIC(model_full, model_reduced, model_poly, model_poly_reduced)
+
+
+dev.new()
+par(mfrow = c(2, 2))
+plot(model_poly_reduced, main = "Diagnostica - Modello Polinomiale ridotto ")
+par(mfrow = c(1, 1))
+shapiro.test(residuals(model_poly_reduced))
+
+
+
+
+
 
 # DA VEDERE SE FARE
 anova(model_reduced, model_poly)  # Verifica se i termini quadratici migliorano il modello in modo significativo
