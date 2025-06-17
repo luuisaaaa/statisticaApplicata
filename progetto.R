@@ -344,9 +344,6 @@ cat(sprintf("MODELLO RIDOTTO:\nR² = %.4f | R² aggiustato = %.4f | RMSE = %.4f\
             r2_red, adj_r2_red, rmse_red))
 
 
-# Grafico comparativo tra le metriche dei due modelli
-library(ggplot2)
-
 # Costruzione del data frame per il grafico
 df_confronto <- data.frame(
   Modello = rep(c("Completo", "Ridotto"), each = 3),
@@ -402,5 +399,87 @@ BIC(model_full, model_reduced)
 #model_full     8 802.6576
 #model_reduced  6 799.1163
 #
+
+# Regressione polinomiale
+
+# Costruzione del modello polinomiale
+model_poly <- lm(y_VideoQuality ~ 
+                   x1_ISO + 
+                   x2_FRatio + I(x2_FRatio^2) + 
+                   x3_TIME + 
+                   x5_CROP + I(x5_CROP^2), 
+                 data = data)
+
+summary(model_poly)
+
+# Calcolo R², R² aggiustato e RMSE
+
+summary_poly <- summary(model_poly)
+r2_poly <- summary_poly$r.squared
+adj_r2_poly <- summary_poly$adj.r.squared
+rmse_poly <- sqrt(mean(summary_poly$residuals^2))
+
+cat("MODELLO POLINOMIALE:\n")
+cat(sprintf("R² = %.4f | R² aggiustato = %.4f | RMSE = %.4f\n\n", 
+            r2_poly, adj_r2_poly, rmse_poly))
+
+# Confronto AIC, BIC con i modelli precedenti
+AIC(model_full, model_reduced, model_poly)
+BIC(model_full, model_reduced, model_poly)
+
+# Costruzione degli intervalli di confidenza dei coefficienti del modello polinomiale
+parametri_poly <- summary_poly$coefficients
+k_param_poly <- length(coef(model_poly))
+t_score_poly <- qt(1 - alpha/2, df = n_sample - k_param_poly)
+
+df_ic_poly <- data.frame(
+  parametro = rownames(parametri_poly),
+  stima = parametri_poly[, "Estimate"],
+  IC_basso = parametri_poly[, "Estimate"] - t_score_poly * parametri_poly[, "Std. Error"],
+  IC_alto = parametri_poly[, "Estimate"] + t_score_poly * parametri_poly[, "Std. Error"]
+)
+
+dev.new()
+ggplot(df_ic_poly, aes(x = stima, y = reorder(parametro, stima))) +
+  geom_point(color = "purple", size = 3) +
+  geom_errorbarh(aes(xmin = IC_basso, xmax = IC_alto), height = 0.2, color = "gray40") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Intervalli di Confidenza al 95% (Modello Polinomiale)",
+       x = "Valore stimato ± IC", y = "Parametro") +
+  theme_minimal(base_size = 14)
+
+# Diagnostica del modello polinomiale
+dev.new()
+par(mfrow = c(2, 2))
+plot(model_poly, main = "Diagnostica - Modello Polinomiale")
+par(mfrow = c(1, 1))
+shapiro.test(residuals(model_poly))
+
+
+# Confronto dei tre modelli
+df_confronto <- rbind(df_confronto, 
+                      data.frame(
+                        Modello = rep("Polinomiale", 3),
+                        Metrica = c("R²", "R² aggiustato", "RMSE"),
+                        Valore = c(r2_poly, adj_r2_poly, rmse_poly)
+                      )
+)
+
+
+# Grafico 
+ggplot(df_confronto, aes(x = Metrica, y = Valore, fill = Modello)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Valore, 3)), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.3, size = 4) +
+  labs(title = "Confronto tra modello completo, ridotto e polinomiale",
+       x = "Metrica", y = "Valore", fill = "Modello") +
+  theme_minimal(base_size = 14)
+
+# DA VEDERE SE FARE
+anova(model_reduced, model_poly)  # Verifica se i termini quadratici migliorano il modello in modo significativo
+
+
+
 
 
