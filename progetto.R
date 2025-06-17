@@ -121,7 +121,7 @@ for (var in names(data)[1:7]) {
 corr_matrix <- cor(data[sapply(data, is.numeric)])
 corrplot.mixed(corr_matrix, order = "original", number.cex = 1, upper = "ellipse")
 corPlot(corr_matrix, cex = 1.1, show.legend = TRUE, main = "Correlazione variabili")
-ggpairs(data, upper = NULL)
+GGally::ggpairs(data)
 
 # Scatter plot individuali (base R)
 par(mfrow = c(2, 4), oma = c(0, 0, 4, 0))
@@ -161,13 +161,7 @@ model_reduced <- lm(y_VideoQuality ~ x1_ISO + x2_FRatio + x5_CROP + x3_TIME, dat
 
 
 #Stima e intervalli di confidenza dei parametri
-# Modello completo
-summary(model_full)
-confint(model full, level = 0.95)
 
-# Modello ridotto
-summary(model_reduced)
-confint(model reduced, level = 0.95)
 
 
 
@@ -373,7 +367,7 @@ ggplot(df_confronto, aes(x = Metrica, y = Valore, fill = Modello)) +
     fill = "Modello"
   ) +
   theme_minimal(base_size = 14)
-
+anova( model_full, model_reduced) #non so se va messo
 
 # Grafici diagnostici per i modelli lineari 
 
@@ -391,7 +385,22 @@ plot(model_full, main = "Diagnostica - Modello Completo")
 par(mfrow = c(2, 2))
 plot(model_reduced, main = "Diagnostica - Modello Ridotto")
 
-# Reset layout grafico
-par(mfrow = c(1, 1))
+
+shapiro.test(residuals(model_full))
+shapiro.test(residuals(model_reduced))
+
+#confronto dei modelli con aic e bic(va fatto forse dopo aver fatto anche la regressione polinomiale )
+AIC(model_full, model_reduced)
+
+#              df      AIC
+#model_full     8 781.8162
+#model_reduced  6 783.4853
+
+BIC(model_full, model_reduced)
+
+#              df      BIC
+#model_full     8 802.6576
+#model_reduced  6 799.1163
+#
 
 
